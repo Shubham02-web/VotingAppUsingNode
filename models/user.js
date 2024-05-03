@@ -15,6 +15,10 @@ const userSchema = new mongoose.Schema({
   mobile: {
     type: String,
   },
+  password: {
+    type: String,
+    required: true,
+  },
   aadharNumber: {
     type: Number,
     required: [true, "Adhar Number is required"],
@@ -22,6 +26,15 @@ const userSchema = new mongoose.Schema({
   address: {
     type: String,
     required: [true, "Address is required"],
+  },
+  role: {
+    type: String,
+    enum: ["voter", "admin"],
+    default: "voter",
+  },
+  isVoted: {
+    type: Boolean,
+    default: false,
   },
 });
 
