@@ -1,45 +1,40 @@
 const JWT = require("jsonwebtoken");
 const User = require("./models/user");
-// const jwtAuthMiddleware = async(req, res, next) => {
-// const token = req.cookie;
-// console.log(req.Cookie);
-// if (!authorization)
-// return res.status(401).json({
-// error: "token not found",
-// });
-
-// const token = req.headers.authorization.split("")[1];
-// if (!token)
-// return res.status(401).json({
-// error: "Unauthorized",
-// });
-
-// try {
-// jwt verify token
-
-// const decode = jwt.verify(token, process.env.JWT_SECRET);
-// req.user = decode;
-// next();
-// } catch (error) {
-// console.log(error);
-// res.status(401).json({
-// error: "Invalid token",
-// });
-// }
-// };
-const jwtAuthMiddleware = async (req, res, next) => {
-  const { token } = req.body;
-  if (!token) {
-    return res.status(401).send({
+const generateToken = function () {
+  const token = JWT.sign(User, process.env.JWT_SECRET, {
+    expiresIn: "2h",
+  });
+  return token;
+};
+const isAuth = (req, res, next) => {
+  // const authhead = req.headers["authorization"];
+  // const token = authhead && authhead.split(" ")[1];
+  const token = req.cookies.token;
+  if (!token)
+    return res.status(500).send({
       success: false,
-      message: "unAuthorized User",
-      token,
+      message: "token not found",
     });
-  }
-  const decodeData = JWT.verify(token, process.env.JWT_SECRET);
-  req.user = await User.findById(decodeData._id);
+  JWT.verify(token, process.env.JWT_SECRET, (err, decoded) => {
+    if (err)
+      return res.status(404).send({
+        success: false,
+        message: "Unable to verify token",
+      });
+    req.user = decoded;
+    next();
+  });
+};
+
+const isAdmin = async (req, res, next) => {
+  const userId = req.user.user._id;
+  const admin = await User.findById(userId);
+  if (admin.role !== "admin")
+    return res.status(500).send({
+      success: false,
+      message: "Admin only",
+      userId,
+    });
   next();
 };
-// function to generate JWT
-
-module.exports = jwtAuthMiddleware;
+module.exports = { isAuth, isAdmin, generateToken };

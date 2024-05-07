@@ -4,13 +4,15 @@ const {
   LoginUser,
   UserProfile,
   UpdatePassword,
+  removeCookie,
 } = require("../controller/userController.js");
-const jwtAuthMiddleware = require("./../jwt.js");
+const { isAuth, isAdmin } = require("./../jwt.js");
 const route = express.Router();
 
 route.post("/SignUp", SignUpUser);
 route.post("/login", LoginUser);
-route.get("/profile", jwtAuthMiddleware, UserProfile);
-route.put("/updatePassword", jwtAuthMiddleware, UpdatePassword);
+route.get("/profile", isAuth, UserProfile);
+route.put("/updatePassword", isAuth, UpdatePassword);
+route.put("/logout", removeCookie);
 
 module.exports = route;

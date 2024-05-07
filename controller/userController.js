@@ -1,4 +1,5 @@
 const { generateToken } = require("./../jwt.js");
+const JWT = require("jsonwebtoken");
 const User = require("../models/user.js");
 const SignUpUser = async (req, res) => {
   try {
@@ -31,18 +32,9 @@ const SignUpUser = async (req, res) => {
       role,
       isVoted,
     });
-
-    const response = await newUser.save();
-    const payLoad = {
-      id: response._id,
-    };
-    console.log(JSON.stringify(payLoad));
-    const token = generateToken(payLoad);
-    console.log("token is : ", token);
-
     res.status(201).json({
-      response: response,
-      token: token,
+      success: true,
+      message: "Voter Sign Up Succesfully go for login",
     });
   } catch (error) {
     console.log(error);
@@ -63,18 +55,17 @@ const LoginUser = async (req, res) => {
         message: "invalid aadharNumber or password",
       });
 
-    const token = await user.generateToken();
-
-    res
-      .status(201)
-      .cookie("token", token, {
-        expires: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000),
-      })
-      .json({
-        success: true,
-        message: "login successfull",
-        token,
+    const token = JWT.sign({ user }, process.env.JWT_SECRET);
+    if (!token)
+      return res.status(400).json({
+        success: false,
+        message: "Failed to generate JWT Token ",
       });
+    res.cookie("token", token).status(201).json({
+      success: true,
+      message: "login successfull",
+      token,
+    });
   } catch (error) {
     console.log(error);
     res.status(500).json({
@@ -86,9 +77,8 @@ const LoginUser = async (req, res) => {
 
 const UserProfile = async (req, res) => {
   try {
-    const userData = req.user;
-    const userId = userData.id;
-    const user = await User.findById(userId);
+    const userData = req.user.user._id;
+    const user = await User.findById(userData);
     res.status(200).json({
       success: true,
       user,
@@ -105,8 +95,7 @@ const UserProfile = async (req, res) => {
 const UpdatePassword = async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
-    const userId = req.user.id;
-
+    const userId = req.user.user._id;
     const user = await User.findById(userId);
 
     if (!(await user.comparePassword(currentPassword)))
@@ -123,5 +112,13 @@ const UpdatePassword = async (req, res) => {
     });
   } catch (error) {}
 };
-
-module.exports = { SignUpUser, LoginUser, UserProfile, UpdatePassword };
+const removeCookie = async (req, res, next) => {
+  res.cookie("token", "").send("cokie reset succesfully");
+};
+module.exports = {
+  SignUpUser,
+  LoginUser,
+  UserProfile,
+  UpdatePassword,
+  removeCookie,
+};
